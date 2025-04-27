@@ -124,14 +124,14 @@ class Graph(ABC):
         
         useful_node_ids = [node_id for node_id, node in self.nodes.items() if is_node_useful(node)]
         in_degree = {node_id: len(self.nodes[node_id].predecessors) for node_id in useful_node_ids}
-        zero_in_degree_queue = [node_id for node_id, deg in in_degree.items() if deg == 0 and node_id in useful_node_ids]
+        zero_in_degree_queue = [node_id for node_id, deg in in_degree.items() if deg == 0 and node_id in useful_node_ids]    # 入度为0的节点
 
-        for i, input_node in enumerate(self.input_nodes):
+        for i, input_node in enumerate(self.input_nodes):    # 将输入节点与输入数据进行连接
             node_input = deepcopy(inputs)
             input_node.inputs = [node_input]
 
         while zero_in_degree_queue:
-            current_node_id = zero_in_degree_queue.pop(0)
+            current_node_id = zero_in_degree_queue.pop(0)    # 从入度为0的节点中选择一个节点
             current_node = self.nodes[current_node_id]
             tries = 0
             while tries < max_tries:

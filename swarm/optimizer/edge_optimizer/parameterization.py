@@ -40,7 +40,7 @@ class EdgeWiseDistribution(ConnectDistribution):
         self.node_idx2id = {i: node_id for i, node_id in enumerate(node_ids)}
         self.node_id2idx = {node_id: i for i, node_id in enumerate(node_ids)}
         order_tensor = torch.randn(len(node_ids))
-        self.order_params = torch.nn.Parameter(order_tensor)
+        self.order_params = torch.nn.Parameter(order_tensor)    # 学习节点的拓扑排序偏好
 
     def random_sample_num_edges(self, graph: CompositeGraph, num_edges: int) -> CompositeGraph:
         _graph = deepcopy(graph)
@@ -85,12 +85,12 @@ class EdgeWiseDistribution(ConnectDistribution):
                 graph: CompositeGraph,
                 temperature: float = 1.0, # must be >= 1.0
                 threshold: float = None,
-                use_learned_order: bool = False,
+                use_learned_order: bool = False,    # 是否使用学习到的节点拓扑顺序
                 ) -> Tuple[CompositeGraph, torch.Tensor]:
-        if use_learned_order:
+        if use_learned_order:    # 如果启用则生成基于学习参数的节点拓扑排序
             ranks, log_prob = self.realize_ranks(graph, threshold is not None)
             log_probs = [log_prob]
-        else:
+        else:    # 否则初始化一个零值的可微分log概率
             log_probs = [torch.tensor(0.0, requires_grad=True)]
         _graph = deepcopy(graph)
         for potential_connection, edge_logit in zip(
@@ -101,8 +101,8 @@ class EdgeWiseDistribution(ConnectDistribution):
             if not out_node or not in_node:
                 continue
             
-            addable_if_use_learned_order = use_learned_order and (ranks[out_node.id] < ranks[in_node.id])
-            addable_if_not_used_learned_order = (not use_learned_order) and (not _graph.check_cycle(in_node, {out_node}, set()))
+            addable_if_use_learned_order = use_learned_order and (ranks[out_node.id] < ranks[in_node.id])    # 源节点排序必须早于目标节点（保证非循环）
+            addable_if_not_used_learned_order = (not use_learned_order) and (not _graph.check_cycle(in_node, {out_node}, set()))    # 如果未使用学习到的节点拓扑顺序，则检查是否存在循环
             if addable_if_not_used_learned_order or addable_if_use_learned_order:
                 edge_prob = torch.sigmoid(edge_logit / temperature)
                 if threshold:

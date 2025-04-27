@@ -55,28 +55,28 @@ class Swarm:
     def organize(self, include_inner_agent_connections: bool = True):
 
         self.used_agents = []
-        decision_method = OperationRegistry.get(self.final_node_class, self.domain, self.model_name, **self.final_node_kwargs)
+        decision_method = OperationRegistry.get(self.final_node_class, self.domain, self.model_name, **self.final_node_kwargs)    # 仅定义最后的决定节点
         self.composite_graph = CompositeGraph(decision_method,
-                                              self.domain, self.model_name)
+                                              self.domain, self.model_name)    # 先处理决定节点的图
         potential_connections = []
 
         for agent_name in self.agent_names:
             if agent_name in AgentRegistry.registry:
-                agent_instance = AgentRegistry.get(agent_name,
+                agent_instance = AgentRegistry.get(agent_name,    # 如果是IO的话只有一个节点实例，即是input_node也是output_node
                                                    self.domain, self.model_name)
                 if not include_inner_agent_connections:
                     for node in agent_instance.nodes:
                         for successor in agent_instance.nodes[node].successors:
                             potential_connections.append((node, successor.id))
                         agent_instance.nodes[node].successors = []
-                self.composite_graph.add_graph(agent_instance)
+                self.composite_graph.add_graph(agent_instance)    # 将IO实例图也添加到composite_graph中，所以除了decision_method外，还有IO的input_node和output_node
                 self.used_agents.append(agent_instance)
             else:
                 logger.error(f"Cannot find {agent_name} in the list of registered agents "
                              f"({list(AgentRegistry.keys())})")
         
         potential_connections = []
-        if self.edge_optimize:  
+        if self.edge_optimize:      # 边优化的意思就是在所有agent之间建立双向连接
             # Add bi-directional connections between all nodes of all agents (except for the decision nodes).
             for agent1 in self.used_agents:
                 for agent2 in self.used_agents:
@@ -86,7 +86,7 @@ class Swarm:
                                 potential_connections.append((node1, node2)) # (from, to)
 
             # Add only forward connections from all agents' nodes to the final decision node.
-            for agent in self.used_agents:
+            for agent in self.used_agents:    # 将所有agent的output_node连接到decision_method
                 for node in agent.nodes:
                     if (self.connect_output_nodes_to_final_node and
                             node in [output_node.id for output_node in agent.output_nodes]):
@@ -95,7 +95,7 @@ class Swarm:
                         potential_connections.append((node, decision_method.id)) # (from, to)
                         
         else:
-            # Connect all output nodes to the decision method if edge optimization is not enabled
+            # 如果没开启边优化，则只将所有agent的output_node连接到decision_method
             for agent in self.used_agents:
                 for node in agent.nodes:
                     if node in [output_node.id for output_node in agent.output_nodes]:
