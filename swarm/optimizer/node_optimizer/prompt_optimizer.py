@@ -27,11 +27,11 @@ class MetaPromptOptimizer:
         read_existing_data(file_path): Reads existing meta prompt data from a file.
     """
 
-    def __init__(self, domain: str, model_name: str, operation: str):
+    def __init__(self, domain: str, model_name: str):
         self.domain = domain
         self.model_name = model_name
-        self.operation = operation
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # self.operation = operation
+        self.embedding_model = SentenceTransformer('/root/code/weights/all-MiniLM-L6-v2')
         self.llm = LLMRegistry.get(model_name)
         self.memory = GlobalMemory.instance()
         self.positive_samples = []
@@ -199,16 +199,27 @@ class MetaPromptOptimizer:
         return prompt_template.format(task_type=task_type, initial_constraint=initial_constraint, samples=samples)
 
     async def meta_evaluator(self, prompt: str, role: str, constraint: str, tests):
-
         message = [Message(role="system", content=f"{role}{constraint}"),
                 Message(role="user", content=prompt)]
         
         answer = await self.llm.agen(message)
 
+        # For QA tasks, we can directly compare the answer with ground truth
+        if isinstance(tests, dict) and "expected_output" in tests:
+            expected_answer = tests["expected_output"].lower()
+            actual_answer = answer.lower()
+            
+            # Simple exact match check
+            is_solved = expected_answer in actual_answer or actual_answer in expected_answer
+            
+            # Provide feedback about the comparison
+            feedback = f"Expected: {expected_answer}\nActual: {actual_answer}\nMatch: {is_solved}"
+            
+            return is_solved, feedback
+        
+        # Fallback to PyExecutor for other types of tasks
         from swarm.environment.tools.coding.python_executor import PyExecutor
-
         is_solved, feedback, _ = PyExecutor().execute(answer, [tests])
-
         return is_solved, feedback
 
 

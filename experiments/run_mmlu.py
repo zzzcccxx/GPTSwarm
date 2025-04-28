@@ -37,34 +37,38 @@ def parse_args():
 
 async def main():
 
-    args = parse_args()
+    # args = parse_args()
 
-    debug: bool = args.debug
+    # debug: bool = args.debug
 
-    model_name: Optional[str] = args.model_name
+    # model_name: Optional[str] = args.model_name
 
-    mode: Union[Literal['DirectAnswer'],
-                Literal['FullConnectedSwarm'],
-                Literal['RandomSwarm'],
-                Literal['OptimizedSwarm']]
+    # mode: Union[Literal['DirectAnswer'],
+    #             Literal['FullConnectedSwarm'],
+    #             Literal['RandomSwarm'],
+    #             Literal['OptimizedSwarm']]
 
-    mode = args.mode
+    # mode = args.mode
 
+    model_name = 'GLM'
+    mode = 'OptimizedSwarm'
     strategy = MergingStrategy.MajorityVote
 
-    domain: str = args.domain
+    # domain: str = args.domain
+    domain = 'mmlu'
 
     if mode == 'DirectAnswer':
         swarm_name = None
         swarm = None
     else:
-        N = args.num_truthful_agents
+        #N = args.num_truthful_agents
+        N = 2
         M = N
         agent_name_list = N * ["IO"] + M * ["AdversarialAgent"]
 
         swarm_name = f"{N}true_{M}adv"
 
-        swarm = Swarm(
+        swarm = Swarm(    # 创建一个swarm，swarm是所有agent的集合
             agent_name_list,
             domain,
             model_name=model_name,
@@ -89,7 +93,7 @@ async def main():
         enable_artifacts=True,
         tensorboard_tag=tag)
 
-    limit_questions = 5 if debug else 153
+    limit_questions = 5 # if debug else 153
 
     if mode == 'DirectAnswer':
         score = await evaluator.evaluate_direct_answer(
@@ -104,7 +108,7 @@ async def main():
             limit_questions=limit_questions)
     elif mode == 'OptimizedSwarm':
 
-        num_iters = 5 if debug else args.num_iterations
+        num_iters = 5 # if debug else args.num_iterations
 
         lr = 0.1
 

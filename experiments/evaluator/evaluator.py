@@ -232,7 +232,7 @@ class Evaluator():
                     record = dataset[idx.item()]
                     yield record
 
-        loader = infinite_data_loader()
+        loader = infinite_data_loader()    # shuffle 数据
 
         edge_probs = None
         for i_iter in range(num_iters):

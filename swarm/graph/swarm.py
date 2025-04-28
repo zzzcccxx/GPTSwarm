@@ -76,7 +76,7 @@ class Swarm:
                              f"({list(AgentRegistry.keys())})")
         
         potential_connections = []
-        if self.edge_optimize:      # 边优化的意思就是在所有agent之间建立双向连接
+        if self.edge_optimize:      # 边优化的意思就是在所有agent的所有节点之间建立双向连接
             # Add bi-directional connections between all nodes of all agents (except for the decision nodes).
             for agent1 in self.used_agents:
                 for agent2 in self.used_agents:

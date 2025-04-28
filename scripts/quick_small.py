@@ -8,6 +8,9 @@ from swarm.graph.swarm import Swarm
 
 swarm = Swarm(["IO", "IO", "IO"], "gaia", model_name='GLM')
 task = "What is the capital of Jordan?"
-inputs = {"task": task}
+inputs = {
+    "task": task,
+    "GT": "Amman"  # Adding the ground truth answer
+}
 answer = swarm.run(inputs)
 print(answer)

@@ -36,7 +36,7 @@ class DirectAnswer(Node):
     def node_name(self):
         return self.__class__.__name__
     
-    async def node_optimize(self, input, meta_optmize=False):
+    async def node_optimize(self, input, meta_optmize=True):
         task = input["task"]
         self.prompt_set = PromptSetRegistry.get(self.domain)
         role = self.prompt_set.get_role()
@@ -44,8 +44,31 @@ class DirectAnswer(Node):
 
         if meta_optmize:
             update_role = role 
-            node_optmizer = MetaPromptOptimizer(self.model_name, self.node_name)
-            update_constraint = await node_optmizer.generate(constraint, task)
+            node_optmizer = MetaPromptOptimizer(self.domain, self.model_name)
+            # Create a prompt for the question
+            prompt = self.prompt_set.get_answer_prompt(question=task)
+            
+            # Create test case for the meta_evaluator
+            expected_output = input.get("GT", None)
+            if expected_output is None:
+                logger.warning("No ground truth answer provided. Using sample answer for testing.")
+                expected_output = "Sample answer for testing"
+            
+            test_case = {
+                "test_name": "question_test",
+                "test_input": task,
+                "expected_output": expected_output,
+                "validation_type": "contains"  # Just check if output contains expected string
+            }
+            
+            # Call generate with all required parameters
+            update_constraint = await node_optmizer.generate(
+                init_prompt=prompt,
+                init_constraint=constraint,
+                init_role=role,
+                tests=test_case,
+                data_desc="question answering"
+            )
             return update_role, update_constraint
 
         return role, constraint
@@ -58,7 +81,7 @@ class DirectAnswer(Node):
 
         for input in node_inputs:
             task = input["task"]
-            role, constraint = await self.node_optimize(input, meta_optmize=False)
+            role, constraint = await self.node_optimize(input, meta_optmize=True)
             prompt = self.prompt_set.get_answer_prompt(question=task)    
             message = [Message(role="system", content=f"You are a {role}. {constraint}"),
                        Message(role="user", content=prompt)]

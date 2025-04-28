@@ -6,3 +6,4 @@ from pathlib import Path
 
 
 GPTSWARM_ROOT = Path(os.path.realpath(os.path.join(os.path.split(__file__)[0], "../..")))
+# GPTSWARM_ROOT = '/root/code/GPTSwarm'

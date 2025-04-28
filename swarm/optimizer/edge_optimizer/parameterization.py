@@ -116,14 +116,14 @@ class EdgeWiseDistribution(ConnectDistribution):
                 edge_prob = torch.sigmoid(edge_logit / temperature)
                 if threshold:
                     edge_prob = torch.tensor(1 if edge_prob > threshold else 0)
-                if torch.rand(1) < edge_prob:
+                if torch.rand(1) < edge_prob:    # 按随机概率决定潜在边是否存在，有向边
                     out_node.add_successor(in_node)
                     # in_node.add_predecessor(out_node)
                     log_probs.append(torch.log(edge_prob))
                 else:
                     log_probs.append(torch.log(1 - edge_prob))
 
-        log_prob = torch.sum(torch.stack(log_probs))
+        log_prob = torch.sum(torch.stack(log_probs))    # 所有边采样结果的联合概率的对数表示，可用于梯度反向传播。
         return _graph, log_prob
 
     def realize_full(self, graph: CompositeGraph) -> CompositeGraph:

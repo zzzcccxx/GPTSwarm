@@ -56,10 +56,12 @@ def parse_args():
     return args
 
 async def main():
-    args = parse_args()
+    #args = parse_args()
+    model_name = 'GLM'
     result_file = None
 
-    dataset = JSONLReader.parse_file(args.dataset_json)
+    # dataset = JSONLReader.parse_file(args.dataset_json)
+    dataset = JSONLReader.parse_file('/root/code/GPTSwarm/datasets/humaneval/humaneval-py.jsonl')
 
     ####################################
 
@@ -68,9 +70,10 @@ async def main():
     Time.instance().value = current_time
     result_dir = Path(f"{GPTSWARM_ROOT}/result/eval")
     result_dir.mkdir(parents=True, exist_ok=True)
-    result_file = result_dir / f"{'' if args.learn_prompt else 'not'}_learn_prompt_{'' if args.learn_demonstration else 'not'}_learn_demo_{args.llm}_{current_time}.json"
+    # result_file = result_dir / f"{'' if args.learn_prompt else 'not'}_learn_prompt_{'' if args.learn_demonstration else 'not'}_learn_demo_{args.llm}_{current_time}.json"
+    result_file = result_dir / f"not_learn_prompt_not_learn_demo_{model_name}_{current_time}.json"
     agent = CodeReact(domain="humaneval", 
-                   model_name=args.llm,
+                   model_name=model_name,
                    )
     memory = GlobalMemory.instance()
     ####################################
@@ -114,8 +117,11 @@ async def main():
         with open(result_file, 'w') as file:
             json.dump(data, file, indent=4)
 
-        if i % opt_frequency == opt_frequency - 1 and (args.learn_prompt or args.learn_demonstration):
-            tasks = [optimize(node, args.learn_demonstration, args.learn_prompt) for node in agent.nodes.values() if isinstance(node, OptimizableOperation)]
+        args_learn_prompt = True
+        args_learn_demonstration = True
+
+        if i % opt_frequency == opt_frequency - 1 and (args_learn_prompt or args_learn_demonstration):
+            tasks = [optimize(node, args_learn_demonstration, args_learn_prompt) for node in agent.nodes.values() if isinstance(node, OptimizableOperation)]
             await asyncio.gather(*tasks)
 
 if __name__ == '__main__':
