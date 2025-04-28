@@ -51,7 +51,7 @@ class DirectAnswer(Node):
             # Create test case for the meta_evaluator
             expected_output = input.get("GT", None)
             if expected_output is None:
-                logger.warning("No ground truth answer provided. Using sample answer for testing.")
+                # logger.warning("No ground truth answer provided. Using sample answer for testing.")
                 expected_output = "Sample answer for testing"
             
             test_case = {

@@ -28,7 +28,7 @@ if __name__ == "__main__":
     
     print(experiment_id)
 
-    file_path = "datasets/crosswords/mini0505_0_100_5.json"
+    file_path = "/root/code/GPTSwarm/datasets/crosswords/mini0505_0_100_5.json"
     with open(file_path, "r") as file:
         test_data = json.load(file)
 
@@ -48,3 +48,5 @@ if __name__ == "__main__":
                 include_inner_agent_connections=include_inner_agent_connections)
     optimize(swarm, evaluator, batch_size=batch_size, num_iter=11, display_freq=1, record=True,
               experiment_id=experiment_id, lr=.4, use_learned_order=use_learned_order)
+    
+    print("done")

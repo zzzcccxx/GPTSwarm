@@ -136,7 +136,7 @@ class Swarm:
     def run(self,
             inputs: Dict[str, Any],
             realized_graph: Optional[CompositeGraph] = None,
-            display: bool = False,
+            display: bool = True,
             ):
 
         if realized_graph is None:
