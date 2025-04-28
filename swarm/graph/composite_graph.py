@@ -30,7 +30,7 @@ class CompositeGraph(Graph):
             # We move the check cycle to parameterization.py
             # if self.check_cycle(node):
             #     #raise Exception(f"Adding node {node.id} would cause a cyclic dependency.")
-            self.add_node(node)
+            self.add_node(node)    # 将传入的graph中的节点添加到当前的节点中，可以通过self.nodes看到
 
         self.graphs.append(graph)
         graph.memory = self.memory

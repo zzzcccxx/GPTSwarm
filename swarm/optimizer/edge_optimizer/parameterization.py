@@ -43,6 +43,9 @@ class EdgeWiseDistribution(ConnectDistribution):
         self.order_params = torch.nn.Parameter(order_tensor)    # 学习节点的拓扑排序偏好
 
     def random_sample_num_edges(self, graph: CompositeGraph, num_edges: int) -> CompositeGraph:
+        '''
+        用于快速生成满足边数约束的随机图
+        '''
         _graph = deepcopy(graph)
         while True:
             if _graph.num_edges >= num_edges:
@@ -60,6 +63,12 @@ class EdgeWiseDistribution(ConnectDistribution):
         return _graph
 
     def realize_ranks(self, graph, use_max: bool = False):
+        '''
+        拓扑排序实现:
+        1. 通过贪心算法生成拓扑排序
+        2. 使用 order_params 决定节点选择偏好
+        3. 支持确定性（argmax）和随机采样两种模式
+        '''
         log_probs = []
         ranks = {}
         in_degrees = {node.id: len(node.predecessors) for node in graph.nodes.values()}
@@ -118,6 +127,9 @@ class EdgeWiseDistribution(ConnectDistribution):
         return _graph, log_prob
 
     def realize_full(self, graph: CompositeGraph) -> CompositeGraph:
+        '''
+        生成最大可能连接图（不形成环的情况下）
+        '''
         _graph = deepcopy(graph)
         for i, potential_connection in enumerate(self.potential_connections):
             out_node = _graph.find_node(potential_connection[0])
@@ -132,6 +144,9 @@ class EdgeWiseDistribution(ConnectDistribution):
         return _graph
 
     def realize_mask(self, graph: CompositeGraph, edge_mask: torch.Tensor) -> CompositeGraph:
+        '''
+        根据给定的边掩码生成图
+        '''
         _graph = deepcopy(graph)
         for i, (potential_connection, is_edge) in enumerate(zip(self.potential_connections, edge_mask)):
             out_node = _graph.find_node(potential_connection[0])
