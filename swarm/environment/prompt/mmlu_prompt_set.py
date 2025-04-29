@@ -20,13 +20,13 @@ class MMLUPromptSet(PromptSet):
     @staticmethod
     def get_constraint():
         return """
-            I will ask you a question.
-            I will also give you 4 answers enumerated as A, B, C and D.
-            Only one answer out of the offered 4 is correct.
-            You must choose the correct answer to the question.
-            Your response must be one of the 4 letters: A, B, C or D,
-            corresponding to the correct answer.
-            Only one letter (A, B, C or D) is allowed in your answer.
+I will ask you a question.
+I will also give you 4 answers enumerated as A, B, C and D.
+Only one answer out of the offered 4 is correct.
+You must choose the correct answer to the question.
+Your response must be one of the 4 letters: A, B, C or D,
+corresponding to the correct answer.
+Only one letter (A, B, C or D) is allowed in your answer.
         """
 
     @staticmethod

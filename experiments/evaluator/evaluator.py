@@ -247,6 +247,7 @@ class Evaluator():
 
                 realized_graph, log_prob = self._swarm.connection_dist.realize(
                     self._swarm.composite_graph,
+                    # threshold=0.5, # DEBUG
                     # temperature=3.0, # DEBUG
                     )
 

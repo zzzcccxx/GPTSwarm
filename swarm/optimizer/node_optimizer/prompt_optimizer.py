@@ -83,13 +83,13 @@ class MetaPromptOptimizer:
         """
 
         prompt = f"""
-        [Original Instructions] for {data_desc}:
-        {init_constraint}
+[Original Instructions] for {data_desc}:
+{init_constraint}
 
-        Your objective is to refine the [Original Instructions] to better solve the task.
-        Please ensure the revised instructions are concise and more effective for {data_desc}.
+Your objective is to refine the [Original Instructions] to better solve the task.
+Please ensure the revised instructions are concise and more effective for {data_desc}.
 
-        META-INSTRUCTIONS:
+META-INSTRUCTIONS:
         """
 
 
@@ -101,17 +101,19 @@ class MetaPromptOptimizer:
 
             try_idx += 1
             meta_constraint = await self.llm.agen(instruction, max_tokens=200)  
-            meta_constraint = meta_constraint.split("META-INSTRUCTIONS:")[-1].strip() if isinstance(meta_constraint, str) else ""
-            
             judge_prompt = f"""[Instructions] for {data_desc}:
-original_constraint: {init_constraint}
-judge_constraint: {meta_constraint}
+original_instructions: 
+{init_constraint}
+meta_instructions: 
+{meta_constraint}
 
-Your task is to judge the optimization degree before and after the prompt words. If you think the optimization is excessive, reduce the optimization of the prompt words. If you think the optimization is insufficient, increase the optimization of the prompt words.
 
-Judge-INSTRUCTIONS:
+Your task is to not change the semantics of the original prompt "original_instructions", and evaluate whether the optimized prompt "meta_instructions" is appropriate. If you think the optimization is excessive, reduce the optimization to be closer to the original prompt. If you think the optimization is too small, increase the optimization of the prompt. 
+
+Final-INSTRUCTIONS:
 """
-            judge_instruction = [Message(role="system", content="You are a judge-prompt designer. Your answer should start with 'Judge-INSTRUCTIONS:'"), 
+            meta_constraint = meta_constraint.split("META-INSTRUCTIONS:")[-1].strip() if isinstance(meta_constraint, str) else ""
+            judge_instruction = [Message(role="system", content="You are a prompt designer. Your answer should start with 'Final-INSTRUCTIONS:'"), 
                        Message(role="user", content=judge_prompt)]
             judge_constraint = await self.llm.agen(judge_instruction, max_tokens=200)
             judge_constraint = judge_constraint.split("Judge-INSTRUCTIONS:")[-1].strip() if isinstance(judge_constraint, str) else ""
