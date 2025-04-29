@@ -99,7 +99,7 @@ class EdgeWiseDistribution(ConnectDistribution):
         if use_learned_order:    # 如果启用则生成基于学习参数的节点拓扑排序
             ranks, log_prob = self.realize_ranks(graph, threshold is not None)
             log_probs = [log_prob]
-        else:    # 否则初始化一个零值的可微分log概率
+        else:
             log_probs = [torch.tensor(0.0, requires_grad=True)]
         _graph = deepcopy(graph)
         for potential_connection, edge_logit in zip(
@@ -123,7 +123,7 @@ class EdgeWiseDistribution(ConnectDistribution):
                 else:
                     log_probs.append(torch.log(1 - edge_prob))
 
-        log_prob = torch.sum(torch.stack(log_probs))    # 所有边采样结果的联合概率的对数表示，可用于梯度反向传播。
+        log_prob = torch.sum(torch.stack(log_probs))    # 所有边采样结果的联合概率的对数表示，可用于梯度反向传播。ln0.5
         return _graph, log_prob
 
     def realize_full(self, graph: CompositeGraph) -> CompositeGraph:

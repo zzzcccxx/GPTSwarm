@@ -145,9 +145,10 @@ async def main():
         #N = args.num_truthful_agents
         N = 2
         M = N
+        num_thoughts = 2
         agent_name_list = N * ["IO"] + M * ["AdversarialAgent"] + ["CustomCOT"]*2
 
-        swarm_name = f"{N}true_{M}adv"
+        swarm_name = f"{N}true_{M}adv_{num_thoughts}cot"
 
         swarm = Swarm(    # 创建一个swarm，swarm是所有agent的集合
             agent_name_list,

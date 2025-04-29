@@ -28,7 +28,7 @@ class Swarm:
                  agent_names: List[str],
                  domain: str, # No default, we want the user to be aware of what domain they select.
                  model_name: Optional[str] = None, # None is mapped to "gpt-4-1106-preview".
-                 open_graph_as_html: bool = False,
+                 open_graph_as_html: bool = True,
                  final_node_class: str = "FinalDecision",
                  final_node_kwargs: Dict[str, Any] = {'strategy': MergingStrategy.OutputsAsReferences},
                  edge_optimize: bool = False,

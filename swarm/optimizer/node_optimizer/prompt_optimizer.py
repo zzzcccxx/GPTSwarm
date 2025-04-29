@@ -92,6 +92,7 @@ class MetaPromptOptimizer:
         META-INSTRUCTIONS:
         """
 
+
         instruction = [Message(role="system", content="You are a meta-prompt designer. Your answer should start with 'META-INSTRUCTIONS:'"), 
                        Message(role="user", content=prompt)]
 
@@ -101,12 +102,21 @@ class MetaPromptOptimizer:
             try_idx += 1
             meta_constraint = await self.llm.agen(instruction, max_tokens=200)  
             meta_constraint = meta_constraint.split("META-INSTRUCTIONS:")[-1].strip() if isinstance(meta_constraint, str) else ""
-            is_solved, feedback = await self.meta_evaluator(init_prompt, init_role, meta_constraint, tests)  #tests[:tests_num]
             
-            if is_solved:
-                return meta_constraint
+            judge_prompt = f"""[Instructions] for {data_desc}:
+original_constraint: {init_constraint}
+judge_constraint: {meta_constraint}
 
-        return init_constraint
+Your task is to judge the optimization degree before and after the prompt words. If you think the optimization is excessive, reduce the optimization of the prompt words. If you think the optimization is insufficient, increase the optimization of the prompt words.
+
+Judge-INSTRUCTIONS:
+"""
+            judge_instruction = [Message(role="system", content="You are a judge-prompt designer. Your answer should start with 'Judge-INSTRUCTIONS:'"), 
+                       Message(role="user", content=judge_prompt)]
+            judge_constraint = await self.llm.agen(judge_instruction, max_tokens=200)
+            judge_constraint = judge_constraint.split("Judge-INSTRUCTIONS:")[-1].strip() if isinstance(judge_constraint, str) else ""
+
+        return judge_constraint
 
 
     def process_records(self, records: List[Dict], task, sample_type: str) -> Union[List[str], str, None]:
