@@ -16,6 +16,8 @@ from swarm.environment.agents import IO
 from swarm.graph.swarm import Swarm
 from experiments.evaluator.datasets.base_dataset import BaseDataset
 from experiments.evaluator.accuracy import Accuracy
+from swarm.optimizer.edge_optimizer.shapley_optimizer import ShapleyEdgeOptimizer
+from swarm.optimizer.edge_optimizer.shapley_visualization import ShapleyVisualizer
 
 
 class Evaluator():
@@ -206,6 +208,15 @@ class Evaluator():
             num_iters: int,
             lr: float,
             batch_size: int = 4,
+            use_shapley: bool = False,
+            shapley_samples: int = 50,
+            shapley_threshold: float = 0.0,
+            shapley_lr: float = 0.1,
+            visualize_shapley: bool = True,
+            shapley_max_edges: int = 50,
+            shapley_time_budget: int = 600,
+            shapley_parallel: bool = True,
+            shapley_batch_size: int = 5,
             ) -> torch.Tensor:
 
         assert self._swarm is not None
@@ -222,7 +233,11 @@ class Evaluator():
                 json.dump(dict(lr=lr,
                                batch_size=batch_size,
                                num_iters=num_iters,
-                               model_name=self._model_name
+                               model_name=self._model_name,
+                               use_shapley=use_shapley,
+                               shapley_samples=shapley_samples,
+                               shapley_threshold=shapley_threshold,
+                               shapley_lr=shapley_lr
                                ), f)
 
         def infinite_data_loader() -> Iterator[pd.DataFrame]:
@@ -245,7 +260,7 @@ class Evaluator():
             correct_answers = []
             for i_record, record in zip(range(batch_size), loader):
 
-                realized_graph, log_prob = self._swarm.connection_dist.realize(
+                realized_graph, log_prob = self._swarm.connection_dist.realize(    # 决定潜在边是否存在，并得到所有边概率和
                     self._swarm.composite_graph,
                     # threshold=0.5, # DEBUG
                     # temperature=3.0, # DEBUG
@@ -303,6 +318,104 @@ class Evaluator():
 
         if edge_probs is not None:
             self._print_conns(edge_probs, save_to_file=True)
+            
+        # Apply Shapley value optimization if enabled
+        if use_shapley:
+            print("Applying Shapley value optimization...")
+            shapley_optimizer = ShapleyEdgeOptimizer(
+                self._swarm.connection_dist,
+                self._swarm.composite_graph,
+                num_samples=shapley_samples,
+                threshold=shapley_threshold,
+                max_edges_to_evaluate=shapley_max_edges,
+                time_budget_seconds=shapley_time_budget,
+                use_parallel=shapley_parallel,
+                batch_size=shapley_batch_size
+            )
+            
+            # Define an evaluation function for graph configurations
+            async def evaluate_graph_config(graph):
+                total_utility = 0.0
+                eval_batch_size = 4
+                num_samples = min(10, len(dataset))  # Use a small subset for evaluation
+                
+                sample_indices = np.random.choice(len(dataset), num_samples, replace=False)
+                sample_records = [dataset[idx.item()] for idx in sample_indices]
+                
+                # Process in batches
+                for batch_start in range(0, num_samples, eval_batch_size):
+                    batch_end = min(batch_start + eval_batch_size, num_samples)
+                    batch_records = sample_records[batch_start:batch_end]
+                    
+                    future_answers = []
+                    for record in batch_records:
+                        input_dict = dataset.record_to_swarm_input(record)
+                        answer = self._swarm.arun(input_dict, graph)
+                        future_answers.append(answer)
+                    
+                    raw_answers = await asyncio.gather(*future_answers)
+                    
+                    for raw_answer, record in zip(raw_answers, batch_records):
+                        answer = dataset.postprocess_answer(raw_answer)
+                        correct_answer = dataset.record_to_target_answer(record)
+                        acc = Accuracy()
+                        acc.update(answer, correct_answer)
+                        total_utility += acc.get()
+                
+                return total_utility / num_samples
+            
+            # Compute Shapley values
+            print("Computing Shapley values...")
+            shapley_values = await shapley_optimizer.compute_shapley_values(evaluate_graph_config)
+            
+            print("Shapley values:", shapley_values)
+            
+            # Create visualizations if enabled
+            if visualize_shapley and self._art_dir_name is not None:
+                print("Creating Shapley value visualizations...")
+                shapley_vis_dir = os.path.join(self._art_dir_name, "shapley_analysis")
+                visualizer = ShapleyVisualizer(
+                    self._swarm.connection_dist,
+                    self._swarm.composite_graph,
+                    save_dir=shapley_vis_dir
+                )
+                
+                # Generate various visualizations
+                visualizer.plot_shapley_distribution(shapley_values)
+                visualizer.plot_shapley_vs_initial_probs(shapley_values)
+                visualizer.plot_edge_rankings(shapley_values, top_n=20)
+                
+                # Generate edge report
+                edge_report = visualizer.generate_edge_report(shapley_values, threshold=shapley_threshold)
+                print(f"Edge report saved to {shapley_vis_dir}/edge_report.csv")
+                
+                # Compare topologies
+                topology_stats = visualizer.compare_topologies(
+                    shapley_values, 
+                    threshold=shapley_threshold,
+                    initial_threshold=0.5
+                )
+                print("Topology comparison:")
+                for key, value in topology_stats.items():
+                    print(f"  {key}: {value}")
+            
+            # Update connection distribution based on Shapley values
+            shapley_optimizer.update_connection_dist(shapley_values, learning_rate=shapley_lr)
+            
+            # Get updated edge probabilities
+            edge_probs = torch.sigmoid(self._swarm.connection_dist.edge_logits)
+            
+            print("Updated edge probabilities after Shapley optimization:")
+            self._print_conns(edge_probs, save_to_file=True)
+            
+            # Save Shapley values
+            if self._art_dir_name is not None:
+                shapley_json_name = os.path.join(self._art_dir_name, "shapley_values.json")
+                with open(shapley_json_name, "w") as f:
+                    json.dump({
+                        "shapley_values": shapley_values.tolist(),
+                        "edge_probs_after_shapley": edge_probs.tolist()
+                    }, f)
 
         print("Done!")
         edge_probs = torch.sigmoid(self._swarm.connection_dist.edge_logits)
